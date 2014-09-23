@@ -1,0 +1,112 @@
+#!/bin/bash
+set -e
+
+ERRBIT_INSTALL_DIR="/home/errbit/errbit"
+ERRBIT_DATA_DIR="/home/errbit/data"
+
+SETUP_DIR="/app/setup"
+GEM_CACHE_DIR="${SETUP_DIR}/cache"
+
+# remove the host keys generated during openssh-server installation
+rm -rf /etc/ssh/ssh_host_*_key /etc/ssh/ssh_host_*_key.pub
+
+# add errbit user
+adduser --disabled-login --gecos 'ErrBit' errbit
+passwd -d errbit
+
+rm -rf /home/errbit/.ssh
+sudo -u errbit -H mkdir -p ${ERRBIT_DATA_DIR}/.ssh
+sudo -u errbit -H ln -s ${ERRBIT_DATA_DIR}/.ssh /home/errbit/.ssh
+
+# create the data store
+sudo -u errbit -H mkdir -p ${ERRBIT_DATA_DIR}
+
+# shallow clone errbitlab-ce
+sudo -u errbit -H git clone --depth 1 \
+  https://github.com/errbit/errbit.git ${ERRBIT_INSTALL_DIR}
+
+cd ${ERRBIT_INSTALL_DIR}
+
+# copy default configurations
+cp /app/config/init.d/errbit /etc/init.d/errbit
+#TODO: add nginx config
+#TODO: add config.yml
+#TODO: add mongoid.yml
+#TODO: secret token
+
+# create required tmp and log directories
+sudo -u errbit -H mkdir -p log tmp/pids/ tmp/sockets/
+chmod -R u+rwX log tmp
+
+# create symlink to assets in tmp/cache
+rm -rf tmp/cache
+sudo -u errbit -H ln -s ${ERRBIT_DATA_DIR}/tmp/cache tmp/cache
+
+# create symlink to assets in public/assets
+rm -rf public/assets
+sudo -u errbit -H ln -s ${ERRBIT_DATA_DIR}/tmp/public/assets public/assets
+
+# create symlink to uploads directory
+rm -rf public/uploads
+sudo -u errbit -H ln -s ${ERRBIT_DATA_DIR}/uploads public/uploads
+
+# create production log
+sudo -u errbit -H touch log/production.log
+
+# install gems required by errbitlab, use local cache if available
+if [ -d "${GEM_CACHE_DIR}" ]; then
+  mv ${GEM_CACHE_DIR} vendor/
+  chown -R errbit:errbit vendor/cache
+fi
+sudo -u errbit -H bundle install --deployment --without development test aws
+
+# make sure everything in /home/errbit is owned by the errbit user
+chown -R errbit:errbit /home/errbit/
+
+# install errbitlab bootscript
+cp /app/config/init.d/errbit /etc/init.d/errbit
+chmod +x /etc/init.d/errbit
+
+# install logrotate configuration
+cp /app/config/logrotate/errbit /etc/logrotate.d/errbit
+
+# disable default nginx configuration and enable errbitlab's nginx configuration
+rm -f /etc/nginx/sites-enabled/default
+
+# silence setlocale message (#93)
+cat > /etc/default/locale <<EOF
+LC_ALL=en_US.UTF-8
+LANG=en_US.UTF-8
+EOF
+
+# disable pam authentication for sshd
+sed 's/UsePAM yes/UsePAM no/' -i /etc/ssh/sshd_config
+sed 's/UsePrivilegeSeparation yes/UsePrivilegeSeparation no/' -i /etc/ssh/sshd_config
+echo "UseDNS no" >> /etc/ssh/sshd_config
+
+# configure supervisor to start sshd
+mkdir -p /var/run/sshd
+cat > /etc/supervisor/conf.d/sshd.conf <<EOF
+[program:sshd]
+directory=/
+command=/usr/sbin/sshd -D
+user=root
+autostart=false
+autorestart=true
+stdout_logfile=/var/log/supervisor/%(program_name)s.log
+stderr_logfile=/var/log/supervisor/%(program_name)s_error.log
+EOF
+
+# configure supervisord to start nginx
+echo "daemon off;" >> /etc/nginx/nginx.conf
+cat > /etc/supervisor/conf.d/nginx.conf <<EOF
+[program:nginx]
+priority=20
+directory=/tmp
+command=/usr/sbin/nginx
+user=root
+autostart=false
+autorestart=true
+stdout_logfile=/var/log/supervisor/%(program_name)s.log
+stderr_logfile=/var/log/supervisor/%(program_name)s.log
+EOF
