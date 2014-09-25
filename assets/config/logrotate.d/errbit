@@ -1,0 +1,11 @@
+# Errbit logrotate settings
+# based on: http://stackoverflow.com/a/4883967
+
+/home/errbit/errbit/log/*.log {
+    daily
+    missingok
+    rotate 90
+    compress
+    notifempty
+    copytruncate
+}

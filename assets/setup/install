@@ -28,11 +28,10 @@ sudo -u errbit -H git clone --depth 1 \
 cd ${ERRBIT_INSTALL_DIR}
 
 # copy default configurations
-cp /app/config/init.d/errbit /etc/init.d/errbit
-#TODO: add nginx config
-#TODO: add config.yml
-#TODO: add mongoid.yml
-#TODO: secret token
+cp /app/config/nginx/errbit /etc/nginx/sites-enabled/errbit
+sudo -u errbit -H cp /app/config/errbit/config.yml config/
+sudo -u errbit -H cp /app/config/errbit/mongoid.yml config/
+sudo -u errbit -H cp /app/config/errbit/unicorn.rb config/
 
 # create required tmp and log directories
 sudo -u errbit -H mkdir -p log tmp/pids/ tmp/sockets/
@@ -46,10 +45,6 @@ sudo -u errbit -H ln -s ${ERRBIT_DATA_DIR}/tmp/cache tmp/cache
 rm -rf public/assets
 sudo -u errbit -H ln -s ${ERRBIT_DATA_DIR}/tmp/public/assets public/assets
 
-# create symlink to uploads directory
-rm -rf public/uploads
-sudo -u errbit -H ln -s ${ERRBIT_DATA_DIR}/uploads public/uploads
-
 # create production log
 sudo -u errbit -H touch log/production.log
 
@@ -58,7 +53,7 @@ if [ -d "${GEM_CACHE_DIR}" ]; then
   mv ${GEM_CACHE_DIR} vendor/
   chown -R errbit:errbit vendor/cache
 fi
-sudo -u errbit -H bundle install --deployment --without development test aws
+sudo -u errbit -H bundle install --deployment --without development test
 
 # make sure everything in /home/errbit is owned by the errbit user
 chown -R errbit:errbit /home/errbit/
@@ -68,7 +63,7 @@ cp /app/config/init.d/errbit /etc/init.d/errbit
 chmod +x /etc/init.d/errbit
 
 # install logrotate configuration
-cp /app/config/logrotate/errbit /etc/logrotate.d/errbit
+cp /app/config/logrotate.d/errbit /etc/logrotate.d/errbit
 
 # disable default nginx configuration and enable errbitlab's nginx configuration
 rm -f /etc/nginx/sites-enabled/default
@@ -110,3 +105,13 @@ autorestart=true
 stdout_logfile=/var/log/supervisor/%(program_name)s.log
 stderr_logfile=/var/log/supervisor/%(program_name)s.log
 EOF
+
+# purge build dependencies
+apt-get purge -y --auto-remove gcc g++ make patch pkg-config cmake \
+  libc6-dev ruby2.1-dev \
+  libpq-dev zlib1g-dev libyaml-dev libssl-dev \
+  libgdbm-dev libreadline-dev libncurses5-dev libffi-dev \
+  libxml2-dev libxslt-dev libcurl4-openssl-dev libicu-dev
+
+# cleanup
+rm -rf /var/lib/apt/lists/*

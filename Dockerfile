@@ -14,20 +14,19 @@ RUN add-apt-repository -y ppa:git-core/ppa \
  && gem install --no-ri --no-rdoc bundler \
  && rm -rf /var/lib/apt/lists/* # 20140818
 
-COPY assets/config/ /app/setup/config/
+COPY assets/config/ /app/config/
 COPY assets/setup/ /app/setup/
 RUN chmod 755 /app/setup/install
 RUN /app/setup/install
 
-#COPY assets/config/ /app/setup/config/
-#COPY assets/init /app/init
-#RUN chmod 755 /app/init
+COPY assets/init /app/init
+RUN chmod 755 /app/init
 
-#EXPOSE 22
-#EXPOSE 80
+EXPOSE 22
+EXPOSE 80
 #EXPOSE 443
 
 #VOLUME ["/home/git/data"]
 
-#ENTRYPOINT ["/app/init"]
-#CMD ["app:start"]
+ENTRYPOINT ["/app/init"]
+CMD ["app:start"]

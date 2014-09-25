@@ -1,0 +1,7 @@
+# Mongoid Configuration for Mongo with Docker
+# ============================================
+#
+production:
+  sessions:
+    default:
+      uri: <%= ENV['MONGOHQ_URL'] %>
