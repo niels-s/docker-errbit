@@ -10,15 +10,15 @@
 ##
 
 upstream errbit {
-  server unix:/home/errbit/errbit/tmp/sockets/errbit.socket fail_timeout=0;
+  server unix:{{ERRBIT_INSTALL_DIR}}/tmp/sockets/errbit.socket fail_timeout=0;
 }
 
 ## Normal HTTP host
 server {
   listen *:80 default_server;
-  server_name YOUR_SERVER_FQDN; ## Replace this with something like errbit.example.com
+  server_name {{YOUR_SERVER_FQDN}}; ## Replace this with something like errbit.example.com
   server_tokens off; ## Don't show the nginx version number, a security best practice
-  root /home/errbit/errbit/public;
+  root {{ERRBIT_INSTALL_DIR}}/public;
 
   ## Increase this if you want to upload large attachments
   client_max_body_size 5m;
@@ -27,7 +27,7 @@ server {
   access_log  /var/log/nginx/errbit_access.log;
   error_log   /var/log/nginx/errbit_error.log;
 
-  location / {
+  location {{ERRBIT_RELATIVE_URL_ROOT}} {
     ## Serve static files from defined root folder.
     ## @errbit is a named location for the upstream fallback, see below.
     try_files $uri $uri/index.html $uri.html @errbit;
@@ -47,7 +47,7 @@ server {
     proxy_set_header    Host                $http_host;
     proxy_set_header    X-Real-IP           $remote_addr;
     proxy_set_header    X-Forwarded-For     $proxy_add_x_forwarded_for;
-    proxy_set_header    X-Forwarded-Proto   $scheme;
+    proxy_set_header    X-Forwarded-Proto   {{NGINX_X_FORWARDED_PROTO}};
     proxy_set_header    X-Frame-Options     SAMEORIGIN;
 
     proxy_pass http://errbit;
@@ -59,7 +59,7 @@ server {
   ## See config/application.rb under "Relative url support" for the list of
   ## other files that need to be changed for relative url support
   location ~ ^/(assets)/ {
-    root /home/errbit/errbit/public;
+    root {{ERRBIT_INSTALL_DIR}}/public;
     gzip_static on; # to serve pre-gzipped version
     expires max;
     add_header Cache-Control public;

@@ -11,11 +11,11 @@
 # WARNING: See config/application.rb under "Relative url support" for the list of
 # other files that need to be changed for relative url support
 #
-# ENV['RAILS_RELATIVE_URL_ROOT'] = "/errbit"
+ENV['RAILS_RELATIVE_URL_ROOT'] = "{{ERRBIT_RELATIVE_URL_ROOT}}"
 
 # Use at least one worker per core if you're on a dedicated server,
 # more will usually help for _short_ waits on databases/caches.
-worker_processes 2
+worker_processes {{UNICORN_WORKERS}}
 
 # Since Unicorn is never exposed to outside clients, it does not need to
 # run on the standard HTTP port (80), there is no reason to start Unicorn
@@ -26,12 +26,12 @@ worker_processes 2
 
 # Help ensure your application will always spawn in the symlinked
 # "current" directory that Capistrano sets up.
-working_directory "/home/errbit/errbit" # available in 0.94.0+
+working_directory "{{ERRBIT_INSTALL_DIR}}" # available in 0.94.0+
 
 # Listen on both a Unix domain socket and a TCP port.
 # If you are load-balancing multiple Unicorn masters, lower the backlog
 # setting to e.g. 64 for faster failover.
-listen "/home/errbit/errbit/tmp/sockets/gitlab.socket", :backlog => 1024
+listen "{{ERRBIT_INSTALL_DIR}}/tmp/sockets/gitlab.socket", :backlog => 1024
 listen "127.0.0.1:8080", :tcp_nopush => true
 
 # nuke workers after 30 seconds instead of 60 seconds (the default)
@@ -49,16 +49,16 @@ listen "127.0.0.1:8080", :tcp_nopush => true
 #
 # For more information see http://stackoverflow.com/a/21682112/752049
 #
-timeout 60
+timeout {{UNICORN_TIMEOUT}}
 
 # feel free to point this anywhere accessible on the filesystem
-pid "/home/errbit/errbit/tmp/pids/unicorn.pid"
+pid "{{ERRBIT_INSTALL_DIR}}/tmp/pids/unicorn.pid"
 
 # By default, the Unicorn logger will write to stderr.
 # Additionally, some applications/frameworks log to stderr or stdout,
 # so prevent them from going to /dev/null when daemonized here:
-stderr_path "/home/errbit/errbit/log/unicorn.stderr.log"
-stdout_path "/home/errbit/errbit/log/unicorn.stdout.log"
+stderr_path "{{ERRBIT_INSTALL_DIR}}/log/unicorn.stderr.log"
+stdout_path "{{ERRBIT_INSTALL_DIR}}/log/unicorn.stdout.log"
 
 # combine Ruby 2.0.0dev or REE with "preload_app true" for memory savings
 # http://rubyenterpriseedition.com/faq.html#adapt_apps_for_cow

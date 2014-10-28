@@ -1,0 +1,273 @@
+#!/bin/bash
+set -e
+
+ERRBIT_INSTALL_DIR="/home/errbit/errbit"
+ERRBIT_DATA_DIR="/home/errbit/data"
+SETUP_DIR="/app/setup"
+SYSCONF_TEMPLATES_DIR="${SETUP_DIR}/config"
+USERCONF_TEMPLATES_DIR="${ERRBIT_DATA_DIR}/config"
+
+ERRBIT_HOST=${ERRBIT_HOST:-localhost}
+ERRBIT_PORT=${ERRBIT_PORT:-80}
+ERRBIT_EMAIL=${ERRBIT_EMAIL:-example@example.com}
+ERRBIT_RELATIVE_URL_ROOT=${ERRBIT_RELATIVE_URL_ROOT:-}
+
+ERRBIT_PER_APP_EMAIL=${ERRBIT_PER_APP_EMAIL:-false}
+ERRBIT_EMAIL_AT_NOTICES=${ERRBIT_EMAIL_AT_NOTICES:-[1, 10, 100]}
+ERRBIT_PER_APP_NOTICES=${ERRBIT_PER_APP_NOTICES:-false}
+ERRBIT_NOTIFY_AT_NOTICE=${ERRBIT_NOTIFY_AT_NOTICE:-[0]}
+ERRBIT_CONFIRM_ERR_ACTIONS=${ERRBIT_CONFIRM_ERR_ACTIONS:-true}
+ERRBIT_USER_HAS_USERNAME=${ERRBIT_USER_HAS_USERNAME:-false}
+ERRBIT_COMMENTS_WITH_ISSUE_TRACKER=${ERRBIT_COMMENTS_WITH_ISSUE_TRACKER:-true}
+ERRBIT_DISPLAY_INTERNAL_ERRORS=${ERRBIT_DISPLAY_INTERNAL_ERRORS:-true}
+ERRBIT_USE_GRAVATAR=${ERRBIT_USE_GRAVATAR:-true}
+ERRBIT_GRAVATAR_DEFAULT=${ERRBIT_GRAVATAR_DEFAULT:-identicon}
+
+UNICORN_WORKERS=${UNICORN_WORKERS:-2}
+UNICORN_TIMEOUT=${UNICORN_TIMEOUT:-60}
+
+NGINX_X_FORWARDED_PROTO=${NGINX_X_FORWARDED_PROTO:-\$scheme}
+
+MONGOHQ_URL=${MONGOHQ_URL:-}
+
+# SMTP_DOMAIN=${SMTP_DOMAIN:-www.gmail.com}
+# SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
+# SMTP_PORT=${SMTP_PORT:-587}
+# SMTP_USER=${SMTP_USER:-}
+# SMTP_PASS=${SMTP_PASS:-}
+# SMTP_STARTTLS=${SMTP_STARTTLS:-true}
+# if [ -n "${SMTP_USER}" ]; then
+#   SMTP_ENABLED=${SMTP_ENABLED:-true}
+#   SMTP_AUTHENTICATION=${SMTP_AUTHENTICATION:-login}
+# fi
+# SMTP_ENABLED=${SMTP_ENABLED:-false}
+#
+# OAUTH_GITHUB_API_KEY=${OAUTH_GITHUB_API_KEY:-}
+# OAUTH_GITHUB_APP_SECRET=${OAUTH_GITHUB_APP_SECRET:-}
+
+if [ ! -e ${ERRBIT_DATA_DIR}/ssh/ssh_host_rsa_key ]; then
+  # create ssh host keys and move them to the data store.
+  dpkg-reconfigure openssh-server
+  mkdir -p ${ERRBIT_DATA_DIR}/ssh/
+  mv /etc/ssh/ssh_host_*_key /etc/ssh/ssh_host_*_key.pub ${ERRBIT_DATA_DIR}/ssh/
+fi
+# configure sshd to pick up the host keys from ${ERRBIT_DATA_DIR}/ssh/
+sed -i 's,HostKey /etc/ssh/,HostKey '"${ERRBIT_DATA_DIR}"'/ssh/,g' -i /etc/ssh/sshd_config
+
+# start supervisord
+/usr/bin/supervisord -c /etc/supervisor/supervisord.conf
+
+cd ${ERRBIT_INSTALL_DIR}
+sudo -u errbit -H cp ${SYSCONF_TEMPLATES_DIR}/errbit/errbit.yml        config/errbit.yml
+sudo -u errbit -H cp ${SYSCONF_TEMPLATES_DIR}/errbit/mongoid.yml      config/mongoid.yml
+sudo -u errbit -H cp ${SYSCONF_TEMPLATES_DIR}/errbit/unicorn.rb        config/unicorn.rb
+sudo -u errbit -H cp ${SYSCONF_TEMPLATES_DIR}/errbit/secret_token.rb        config/secret_token.rb
+
+# configure errbit
+sudo -u errbit -H sed 's,{{ERRBIT_DATA_DIR}},'"${ERRBIT_DATA_DIR}"',g' -i config/errbit.yml
+sudo -u errbit -H sed 's/{{ERRBIT_HOST}}/'"${ERRBIT_HOST}"'/' -i config/errbit.yml
+sudo -u errbit -H sed 's/{{ERRBIT_PORT}}/'"${ERRBIT_PORT}"'/' -i config/errbit.yml
+sudo -u errbit -H sed 's/{{ERRBIT_EMAIL}}/'"${ERRBIT_EMAIL}"'/' -i config/errbit.yml
+sudo -u errbit -H sed 's/{{ERRBIT_PER_APP_EMAIL}}/'"${ERRBIT_PER_APP_EMAIL}"'/' -i config/errbit.yml
+sudo -u errbit -H sed 's/{{ERRBIT_EMAIL_AT_NOTICES}}/'"${ERRBIT_EMAIL_AT_NOTICES}"'/' -i config/errbit.yml
+sudo -u errbit -H sed 's/{{ERRBIT_PER_APP_NOTICES}}/'"${ERRBIT_PER_APP_NOTICES}"'/' -i config/errbit.yml
+sudo -u errbit -H sed 's/{{ERRBIT_NOTIFY_AT_NOTICE}}/'"${ERRBIT_NOTIFY_AT_NOTICE}"'/' -i config/errbit.yml
+sudo -u errbit -H sed 's/{{ERRBIT_CONFIRM_ERR_ACTIONS}}/'"${ERRBIT_CONFIRM_ERR_ACTIONS}"'/' -i config/errbit.yml
+sudo -u errbit -H sed 's/{{ERRBIT_USER_HAS_USERNAME}}/'"${ERRBIT_USER_HAS_USERNAME}"'/' -i config/errbit.yml
+sudo -u errbit -H sed 's/{{ERRBIT_COMMENTS_WITH_ISSUE_TRACKER}}/'"${ERRBIT_COMMENTS_WITH_ISSUE_TRACKER}"'/' -i config/errbit.yml
+sudo -u errbit -H sed 's/{{ERRBIT_DISPLAY_INTERNAL_ERRORS}}/'"${ERRBIT_DISPLAY_INTERNAL_ERRORS}"'/' -i config/errbit.yml
+sudo -u errbit -H sed 's/{{ERRBIT_USE_GRAVATAR}}/'"${ERRBIT_USE_GRAVATAR}"'/' -i config/errbit.yml
+sudo -u errbit -H sed 's/{{ERRBIT_GRAVATAR_DEFAULT}}/'"${ERRBIT_GRAVATAR_DEFAULT}"'/' -i config/errbit.yml
+
+# configure mongoid
+sudo -u errbit -H sed 's/{{MONGOHQ_URL}}/'"${MONGOHQ_URL}"'/' -i config/mongoid.yml
+
+# configure unicorn
+sudo -u errbit -H sed 's,{{ERRBIT_INSTALL_DIR}},'"${ERRBIT_INSTALL_DIR}"',g' -i config/unicorn.rb
+sudo -u errbit -H sed 's/{{UNICORN_WORKERS}}/'"${UNICORN_WORKERS}"'/' -i config/unicorn.rb
+sudo -u errbit -H sed 's/{{UNICORN_TIMEOUT}}/'"${UNICORN_TIMEOUT}"'/' -i config/unicorn.rb
+
+# if [ "${SMTP_ENABLED}" == "true" ]; then
+#   # configure mail delivery
+#   sudo -u errbit -H sed 's/{{SMTP_HOST}}/'"${SMTP_HOST}"'/' -i config/initializers/smtp_settings.rb
+#   sudo -u errbit -H sed 's/{{SMTP_PORT}}/'"${SMTP_PORT}"'/' -i config/initializers/smtp_settings.rb
+#
+#   case "${SMTP_USER}" in
+#     "") sudo -u errbit -H sed '/{{SMTP_USER}}/d' -i config/initializers/smtp_settings.rb ;;
+#     *) sudo -u errbit -H sed 's/{{SMTP_USER}}/'"${SMTP_USER}"'/' -i config/initializers/smtp_settings.rb ;;
+#   esac
+#
+#   case "${SMTP_PASS}" in
+#     "") sudo -u errbit -H sed '/{{SMTP_PASS}}/d' -i config/initializers/smtp_settings.rb ;;
+#     *) sudo -u errbit -H sed 's/{{SMTP_PASS}}/'"${SMTP_PASS}"'/' -i config/initializers/smtp_settings.rb ;;
+#   esac
+#
+#   sudo -u errbit -H sed 's/{{SMTP_DOMAIN}}/'"${SMTP_DOMAIN}"'/' -i config/initializers/smtp_settings.rb
+#   sudo -u errbit -H sed 's/{{SMTP_STARTTLS}}/'"${SMTP_STARTTLS}"'/' -i config/initializers/smtp_settings.rb
+#
+#   case "${SMTP_AUTHENTICATION}" in
+#     "") sudo -u errbit -H sed '/{{SMTP_AUTHENTICATION}}/d' -i config/initializers/smtp_settings.rb ;;
+#     *) sudo -u errbit -H sed 's/{{SMTP_AUTHENTICATION}}/'"${SMTP_AUTHENTICATION}"'/' -i config/initializers/smtp_settings.rb ;;
+#   esac
+# fi
+# github
+# if [ -n "${OAUTH_GITHUB_API_KEY}" -a -n "${OAUTH_GITHUB_APP_SECRET}" ]; then
+#   OAUTH_ENABLED=true
+#   sudo -u errbit -H sed 's/{{OAUTH_GITHUB_API_KEY}}/'"${OAUTH_GITHUB_API_KEY}"'/' -i config/errbit.yml
+#   sudo -u errbit -H sed 's/{{OAUTH_GITHUB_APP_SECRET}}/'"${OAUTH_GITHUB_APP_SECRET}"'/' -i config/errbit.yml
+#   sudo -u errbit -H sed 's/{{OAUTH_GITHUB_SCOPE}}/user:email/' -i config/errbit.yml
+# else
+#   sudo -u errbit -H sed '/{{OAUTH_GITHUB_API_KEY}}/d' -i config/errbit.yml
+#   sudo -u errbit -H sed '/{{OAUTH_GITHUB_APP_SECRET}}/d' -i config/errbit.yml
+#   sudo -u errbit -H sed '/{{OAUTH_GITHUB_SCOPE}}/d' -i config/errbit.yml
+# fi
+
+# configure nginx vhost
+sed 's,{{ERRBIT_INSTALL_DIR}},'"${ERRBIT_INSTALL_DIR}"',g' -i /etc/nginx/sites-enabled/errbit
+sed 's/{{YOUR_SERVER_FQDN}}/'"${ERRBIT_HOST}"'/' -i /etc/nginx/sites-enabled/errbit
+sed 's/{{NGINX_X_FORWARDED_PROTO}}/'"${NGINX_X_FORWARDED_PROTO}"'/' -i /etc/nginx/sites-enabled/errbit
+
+# configure relative_url_root
+if [ -n "${ERRBIT_RELATIVE_URL_ROOT}" ]; then
+  sed 's,{{ERRBIT_RELATIVE_URL_ROOT}},'"${ERRBIT_RELATIVE_URL_ROOT}"',' -i /etc/nginx/sites-enabled/errbit
+  sed 's,{{ERRBIT_RELATIVE_URL_ROOT__with_trailing_slash}},'"${ERRBIT_RELATIVE_URL_ROOT}/"',' -i /etc/nginx/sites-enabled/errbit
+  sed 's,# alias '"${ERRBIT_INSTALL_DIR}"'/public,alias '"${ERRBIT_INSTALL_DIR}"'/public,' -i /etc/nginx/sites-enabled/errbit
+
+  sudo -u errbit -H sed 's,# config.relative_url_root = "/gitlab",config.relative_url_root = "'${ERRBIT_RELATIVE_URL_ROOT}'",' -i config/application.rb
+  sudo -u errbit -H sed 's,# relative_url_root: {{ERRBIT_RELATIVE_URL_ROOT}},relative_url_root: '${ERRBIT_RELATIVE_URL_ROOT}',' -i config/errbit.yml
+  sudo -u errbit -H sed 's,{{ERRBIT_RELATIVE_URL_ROOT}},'"${ERRBIT_RELATIVE_URL_ROOT}"',' -i config/unicorn.rb
+else
+  sed 's,{{ERRBIT_RELATIVE_URL_ROOT}},/,' -i /etc/nginx/sites-enabled/errbit
+  sed 's,{{ERRBIT_RELATIVE_URL_ROOT__with_trailing_slash}},/,' -i /etc/nginx/sites-enabled/errbit
+  sudo -u errbit -H sed '/{{ERRBIT_RELATIVE_URL_ROOT}}/d' -i config/unicorn.rb
+fi
+
+# fix permission and ownership of ${ERRBIT_DATA_DIR}
+chmod 755 ${ERRBIT_DATA_DIR}
+chown errbit:errbit ${ERRBIT_DATA_DIR}
+
+# set executable flags on ${ERRBIT_DATA_DIR} (needed if mounted from a data-only
+# container using --volumes-from)
+chmod +x ${ERRBIT_DATA_DIR}
+
+# remove old cache directory (remove this line after a few releases)
+rm -rf ${ERRBIT_DATA_DIR}/cache
+
+# create the .ssh directory
+sudo -u errbit -H mkdir -p ${ERRBIT_DATA_DIR}/.ssh/
+touch ${ERRBIT_DATA_DIR}/.ssh/authorized_keys
+chmod 700 ${ERRBIT_DATA_DIR}/.ssh
+chmod 600 ${ERRBIT_DATA_DIR}/.ssh/authorized_keys
+chown -R errbit:errbit ${ERRBIT_DATA_DIR}/.ssh
+
+appStart () {
+  echo "Starting openssh server..."
+  supervisorctl start sshd >/dev/null
+
+  echo "Starting nginx..."
+  supervisorctl start nginx >/dev/null
+
+  # run the `gitlab:setup` rake task if required
+  # case "${DB_TYPE}" in
+    # mysql)
+  #     QUERY="SELECT count(*) FROM information_schema.tables WHERE table_schema = '${DB_NAME}';"
+  #     COUNT=$(mysql -h ${DB_HOST} -u ${DB_USER} ${DB_PASS:+-p$DB_PASS} -ss -e "${QUERY}")
+  #     ;;
+  #   postgres)
+  #     QUERY="SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public';"
+  #     COUNT=$(PGPASSWORD="${DB_PASS}" psql -h ${DB_HOST} -U ${DB_USER} -d ${DB_NAME} -Atw -c "${QUERY}" 2>/dev/null)
+  #     ;;
+  # esac
+  # if [ -z "${COUNT}" -o ${COUNT} -eq 0 ]; then
+		#     echo "Setting up Errbit for first run. Please be patient, this could take a while..."
+		# #TODO: create mongo indexes!
+		# #TODO: check to see if need to run seed?
+		#     sudo -u errbit -H force=yes bundle exec rake gitlab:setup RAILS_ENV=production >/dev/null
+		#   fi
+
+  # migrate database and compile the assets if the gitlab version has changed.
+  CACHE_VERSION=
+  ERRBIT_VERSION=$(cat VERSION)
+  [ -f tmp/cache/VERSION ] && CACHE_VERSION=$(cat tmp/cache/VERSION)
+  if [ "${ERRBIT_VERSION}" != "${CACHE_VERSION}" ]; then
+    # echo "Migrating database..."
+    # sudo -u errbit -H bundle exec rake db:migrate RAILS_ENV=production >/dev/null
+
+    # recreate the tmp directory
+    rm -rf ${ERRBIT_DATA_DIR}/tmp
+    sudo -u errbit -H mkdir -p ${ERRBIT_DATA_DIR}/tmp/
+    chmod -R u+rwX ${ERRBIT_DATA_DIR}/tmp/
+
+    # create the tmp/cache and tmp/public/assets directory
+    sudo -u errbit -H mkdir -p ${ERRBIT_DATA_DIR}/tmp/cache/
+    sudo -u errbit -H mkdir -p ${ERRBIT_DATA_DIR}/tmp/public/assets/
+
+    echo "Compiling assets. Please be patient, this could take a while..."
+    sudo -u errbit -H bundle exec rake assets:clean RAILS_ENV=production
+    sudo -u errbit -H bundle exec rake assets:precompile RAILS_ENV=production 2>/dev/null
+    sudo -u errbit -H touch tmp/cache/VERSION
+    sudo -u errbit -H echo "${ERRBIT_VERSION}" > tmp/cache/VERSION
+  fi
+
+  # remove stale unicorn and sidekiq pid's if they exist.
+  rm -rf tmp/pids/unicorn.pid
+
+  # start the gitlab application
+  sudo -u errbit -H /etc/init.d/errbit start
+
+  # watch the access logs
+  tail -F /var/log/nginx/errbit_access.log
+}
+
+appStop() {
+  echo ""
+  /etc/init.d/errbit stop
+  echo "Stopping sshd..."
+  supervisorctl stop sshd >/dev/null
+  echo "Stopping nginx..."
+  supervisorctl stop nginx >/dev/null
+  echo "Stopping supervisord..."
+  kill -15 $(cat /var/run/supervisord.pid)
+  exit
+}
+
+appSanitize () {
+  echo "Checking tmp directory permissions..."
+  chmod -R u+rwX ${ERRBIT_DATA_DIR}/tmp/
+  chown errbit:errbit -R ${ERRBIT_DATA_DIR}/tmp/
+}
+
+appHelp () {
+  echo "Available options:"
+  echo " app:start          - Starts the gitlab server (default)"
+  echo " app:sanitize       - Fix tmp directory permissions."
+  echo " app:help           - Displays the help"
+  echo " [command]          - Execute the specified linux command eg. bash."
+}
+
+case "$1" in
+  app:start)
+    appStart
+    ;;
+  app:sanitize)
+    appSanitize
+    ;;
+  app:help)
+    appHelp
+    ;;
+  *)
+    if [ -x $1 ]; then
+      $1
+    else
+      prog=$(which $1)
+      if [ -n "${prog}" ] ; then
+        shift 1
+        $prog $@
+      else
+        appHelp
+      fi
+    fi
+    ;;
+esac
+
+exit 0

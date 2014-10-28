@@ -29,7 +29,7 @@ cd ${ERRBIT_INSTALL_DIR}
 
 # copy default configurations
 cp /app/config/nginx/errbit /etc/nginx/sites-enabled/errbit
-sudo -u errbit -H cp /app/config/errbit/config.yml config/
+sudo -u errbit -H cp /app/config/errbit/errbit.yml config/
 sudo -u errbit -H cp /app/config/errbit/mongoid.yml config/
 sudo -u errbit -H cp /app/config/errbit/unicorn.rb config/
 
