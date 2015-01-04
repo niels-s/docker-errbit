@@ -1,7 +1,12 @@
-# Mongoid Configuration for Mongo with Docker
-# ============================================
-#
+# Mongoid Configuration
+# =====================
 production:
   sessions:
     default:
-      uri: {{MONGOHQ_URL}}
+      database: {{MONGOID_DATABASE}}
+      hosts:
+        - '{{MONGOID_HOST}}:{{MONGOID_PORT}}'
+      username: {{MONGOID_USERNAME}}
+      password: {{MONGOID_PASSWORD}}
+  options:
+    identity_map_enabled: true

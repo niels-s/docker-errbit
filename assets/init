@@ -3,9 +3,7 @@ set -e
 
 ERRBIT_INSTALL_DIR="/home/errbit/errbit"
 ERRBIT_DATA_DIR="/home/errbit/data"
-SETUP_DIR="/app/setup"
-SYSCONF_TEMPLATES_DIR="${SETUP_DIR}/config"
-USERCONF_TEMPLATES_DIR="${ERRBIT_DATA_DIR}/config"
+SYSCONF_TEMPLATES_DIR="/app/config"
 
 ERRBIT_HOST=${ERRBIT_HOST:-localhost}
 ERRBIT_PORT=${ERRBIT_PORT:-80}
@@ -28,7 +26,11 @@ UNICORN_TIMEOUT=${UNICORN_TIMEOUT:-60}
 
 NGINX_X_FORWARDED_PROTO=${NGINX_X_FORWARDED_PROTO:-\$scheme}
 
-MONGOHQ_URL=${MONGOHQ_URL:-}
+MONGOID_DATABASE=${MONGOID_DATABASE:-}
+MONGOID_HOST=${MONGOID_HOST:-}
+MONGOID_PORT=${MONGOID_PORT:-}
+MONGOID_USERNAME=${MONGOID_USERNAME:-}
+MONGOID_PASSWORD=${MONGOID_PASSWORD:-}
 
 # SMTP_DOMAIN=${SMTP_DOMAIN:-www.gmail.com}
 # SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
@@ -58,29 +60,33 @@ sed -i 's,HostKey /etc/ssh/,HostKey '"${ERRBIT_DATA_DIR}"'/ssh/,g' -i /etc/ssh/s
 /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
 
 cd ${ERRBIT_INSTALL_DIR}
-sudo -u errbit -H cp ${SYSCONF_TEMPLATES_DIR}/errbit/errbit.yml        config/errbit.yml
+sudo -u errbit -H cp ${SYSCONF_TEMPLATES_DIR}/errbit/config.yml        config/config.yml
 sudo -u errbit -H cp ${SYSCONF_TEMPLATES_DIR}/errbit/mongoid.yml      config/mongoid.yml
 sudo -u errbit -H cp ${SYSCONF_TEMPLATES_DIR}/errbit/unicorn.rb        config/unicorn.rb
 sudo -u errbit -H cp ${SYSCONF_TEMPLATES_DIR}/errbit/secret_token.rb        config/secret_token.rb
 
 # configure errbit
-sudo -u errbit -H sed 's,{{ERRBIT_DATA_DIR}},'"${ERRBIT_DATA_DIR}"',g' -i config/errbit.yml
-sudo -u errbit -H sed 's/{{ERRBIT_HOST}}/'"${ERRBIT_HOST}"'/' -i config/errbit.yml
-sudo -u errbit -H sed 's/{{ERRBIT_PORT}}/'"${ERRBIT_PORT}"'/' -i config/errbit.yml
-sudo -u errbit -H sed 's/{{ERRBIT_EMAIL}}/'"${ERRBIT_EMAIL}"'/' -i config/errbit.yml
-sudo -u errbit -H sed 's/{{ERRBIT_PER_APP_EMAIL}}/'"${ERRBIT_PER_APP_EMAIL}"'/' -i config/errbit.yml
-sudo -u errbit -H sed 's/{{ERRBIT_EMAIL_AT_NOTICES}}/'"${ERRBIT_EMAIL_AT_NOTICES}"'/' -i config/errbit.yml
-sudo -u errbit -H sed 's/{{ERRBIT_PER_APP_NOTICES}}/'"${ERRBIT_PER_APP_NOTICES}"'/' -i config/errbit.yml
-sudo -u errbit -H sed 's/{{ERRBIT_NOTIFY_AT_NOTICE}}/'"${ERRBIT_NOTIFY_AT_NOTICE}"'/' -i config/errbit.yml
-sudo -u errbit -H sed 's/{{ERRBIT_CONFIRM_ERR_ACTIONS}}/'"${ERRBIT_CONFIRM_ERR_ACTIONS}"'/' -i config/errbit.yml
-sudo -u errbit -H sed 's/{{ERRBIT_USER_HAS_USERNAME}}/'"${ERRBIT_USER_HAS_USERNAME}"'/' -i config/errbit.yml
-sudo -u errbit -H sed 's/{{ERRBIT_COMMENTS_WITH_ISSUE_TRACKER}}/'"${ERRBIT_COMMENTS_WITH_ISSUE_TRACKER}"'/' -i config/errbit.yml
-sudo -u errbit -H sed 's/{{ERRBIT_DISPLAY_INTERNAL_ERRORS}}/'"${ERRBIT_DISPLAY_INTERNAL_ERRORS}"'/' -i config/errbit.yml
-sudo -u errbit -H sed 's/{{ERRBIT_USE_GRAVATAR}}/'"${ERRBIT_USE_GRAVATAR}"'/' -i config/errbit.yml
-sudo -u errbit -H sed 's/{{ERRBIT_GRAVATAR_DEFAULT}}/'"${ERRBIT_GRAVATAR_DEFAULT}"'/' -i config/errbit.yml
+sudo -u errbit -H sed 's,{{ERRBIT_DATA_DIR}},'"${ERRBIT_DATA_DIR}"',g' -i config/config.yml
+sudo -u errbit -H sed 's/{{ERRBIT_HOST}}/'"${ERRBIT_HOST}"'/' -i config/config.yml
+sudo -u errbit -H sed 's/{{ERRBIT_PORT}}/'"${ERRBIT_PORT}"'/' -i config/config.yml
+sudo -u errbit -H sed 's/{{ERRBIT_EMAIL}}/'"${ERRBIT_EMAIL}"'/' -i config/config.yml
+sudo -u errbit -H sed 's/{{ERRBIT_PER_APP_EMAIL}}/'"${ERRBIT_PER_APP_EMAIL}"'/' -i config/config.yml
+sudo -u errbit -H sed 's/{{ERRBIT_EMAIL_AT_NOTICES}}/'"${ERRBIT_EMAIL_AT_NOTICES}"'/' -i config/config.yml
+sudo -u errbit -H sed 's/{{ERRBIT_PER_APP_NOTICES}}/'"${ERRBIT_PER_APP_NOTICES}"'/' -i config/config.yml
+sudo -u errbit -H sed 's/{{ERRBIT_NOTIFY_AT_NOTICE}}/'"${ERRBIT_NOTIFY_AT_NOTICE}"'/' -i config/config.yml
+sudo -u errbit -H sed 's/{{ERRBIT_CONFIRM_ERR_ACTIONS}}/'"${ERRBIT_CONFIRM_ERR_ACTIONS}"'/' -i config/config.yml
+sudo -u errbit -H sed 's/{{ERRBIT_USER_HAS_USERNAME}}/'"${ERRBIT_USER_HAS_USERNAME}"'/' -i config/config.yml
+sudo -u errbit -H sed 's/{{ERRBIT_COMMENTS_WITH_ISSUE_TRACKER}}/'"${ERRBIT_COMMENTS_WITH_ISSUE_TRACKER}"'/' -i config/config.yml
+sudo -u errbit -H sed 's/{{ERRBIT_DISPLAY_INTERNAL_ERRORS}}/'"${ERRBIT_DISPLAY_INTERNAL_ERRORS}"'/' -i config/config.yml
+sudo -u errbit -H sed 's/{{ERRBIT_USE_GRAVATAR}}/'"${ERRBIT_USE_GRAVATAR}"'/' -i config/config.yml
+sudo -u errbit -H sed 's/{{ERRBIT_GRAVATAR_DEFAULT}}/'"${ERRBIT_GRAVATAR_DEFAULT}"'/' -i config/config.yml
 
 # configure mongoid
-sudo -u errbit -H sed 's/{{MONGOHQ_URL}}/'"${MONGOHQ_URL}"'/' -i config/mongoid.yml
+sudo -u errbit -H sed 's/{{MONGOID_DATABASE}}/'"${MONGOID_DATABASE}"'/' -i config/mongoid.yml
+sudo -u errbit -H sed 's/{{MONGOID_HOST}}/'"${MONGOID_HOST}"'/' -i config/mongoid.yml
+sudo -u errbit -H sed 's/{{MONGOID_PORT}}/'"${MONGOID_PORT}"'/' -i config/mongoid.yml
+sudo -u errbit -H sed 's/{{MONGOID_USERNAME}}/'"${MONGOID_USERNAME}"'/' -i config/mongoid.yml
+sudo -u errbit -H sed 's/{{MONGOID_PASSWORD}}/'"${MONGOID_PASSWORD}"'/' -i config/mongoid.yml
 
 # configure unicorn
 sudo -u errbit -H sed 's,{{ERRBIT_INSTALL_DIR}},'"${ERRBIT_INSTALL_DIR}"',g' -i config/unicorn.rb
@@ -113,13 +119,13 @@ sudo -u errbit -H sed 's/{{UNICORN_TIMEOUT}}/'"${UNICORN_TIMEOUT}"'/' -i config/
 # github
 # if [ -n "${OAUTH_GITHUB_API_KEY}" -a -n "${OAUTH_GITHUB_APP_SECRET}" ]; then
 #   OAUTH_ENABLED=true
-#   sudo -u errbit -H sed 's/{{OAUTH_GITHUB_API_KEY}}/'"${OAUTH_GITHUB_API_KEY}"'/' -i config/errbit.yml
-#   sudo -u errbit -H sed 's/{{OAUTH_GITHUB_APP_SECRET}}/'"${OAUTH_GITHUB_APP_SECRET}"'/' -i config/errbit.yml
-#   sudo -u errbit -H sed 's/{{OAUTH_GITHUB_SCOPE}}/user:email/' -i config/errbit.yml
+#   sudo -u errbit -H sed 's/{{OAUTH_GITHUB_API_KEY}}/'"${OAUTH_GITHUB_API_KEY}"'/' -i config/config.yml
+#   sudo -u errbit -H sed 's/{{OAUTH_GITHUB_APP_SECRET}}/'"${OAUTH_GITHUB_APP_SECRET}"'/' -i config/config.yml
+#   sudo -u errbit -H sed 's/{{OAUTH_GITHUB_SCOPE}}/user:email/' -i config/config.yml
 # else
-#   sudo -u errbit -H sed '/{{OAUTH_GITHUB_API_KEY}}/d' -i config/errbit.yml
-#   sudo -u errbit -H sed '/{{OAUTH_GITHUB_APP_SECRET}}/d' -i config/errbit.yml
-#   sudo -u errbit -H sed '/{{OAUTH_GITHUB_SCOPE}}/d' -i config/errbit.yml
+#   sudo -u errbit -H sed '/{{OAUTH_GITHUB_API_KEY}}/d' -i config/config.yml
+#   sudo -u errbit -H sed '/{{OAUTH_GITHUB_APP_SECRET}}/d' -i config/config.yml
+#   sudo -u errbit -H sed '/{{OAUTH_GITHUB_SCOPE}}/d' -i config/config.yml
 # fi
 
 # configure nginx vhost
@@ -134,7 +140,7 @@ if [ -n "${ERRBIT_RELATIVE_URL_ROOT}" ]; then
   sed 's,# alias '"${ERRBIT_INSTALL_DIR}"'/public,alias '"${ERRBIT_INSTALL_DIR}"'/public,' -i /etc/nginx/sites-enabled/errbit
 
   sudo -u errbit -H sed 's,# config.relative_url_root = "/gitlab",config.relative_url_root = "'${ERRBIT_RELATIVE_URL_ROOT}'",' -i config/application.rb
-  sudo -u errbit -H sed 's,# relative_url_root: {{ERRBIT_RELATIVE_URL_ROOT}},relative_url_root: '${ERRBIT_RELATIVE_URL_ROOT}',' -i config/errbit.yml
+  sudo -u errbit -H sed 's,# relative_url_root: {{ERRBIT_RELATIVE_URL_ROOT}},relative_url_root: '${ERRBIT_RELATIVE_URL_ROOT}',' -i config/config.yml
   sudo -u errbit -H sed 's,{{ERRBIT_RELATIVE_URL_ROOT}},'"${ERRBIT_RELATIVE_URL_ROOT}"',' -i config/unicorn.rb
 else
   sed 's,{{ERRBIT_RELATIVE_URL_ROOT}},/,' -i /etc/nginx/sites-enabled/errbit
@@ -186,10 +192,11 @@ appStart () {
 		#   fi
 
   # migrate database and compile the assets if the gitlab version has changed.
-  CACHE_VERSION=
-  ERRBIT_VERSION=$(cat VERSION)
-  [ -f tmp/cache/VERSION ] && CACHE_VERSION=$(cat tmp/cache/VERSION)
-  if [ "${ERRBIT_VERSION}" != "${CACHE_VERSION}" ]; then
+  # CACHE_VERSION=
+	# TODO: replace with latest commit sha
+  # ERRBIT_VERSION=$(cat VERSION)
+  # [ -f tmp/cache/VERSION ] && CACHE_VERSION=$(cat tmp/cache/VERSION)
+  # if [ "${ERRBIT_VERSION}" != "${CACHE_VERSION}" ]; then
     # echo "Migrating database..."
     # sudo -u errbit -H bundle exec rake db:migrate RAILS_ENV=production >/dev/null
 
@@ -207,7 +214,7 @@ appStart () {
     sudo -u errbit -H bundle exec rake assets:precompile RAILS_ENV=production 2>/dev/null
     sudo -u errbit -H touch tmp/cache/VERSION
     sudo -u errbit -H echo "${ERRBIT_VERSION}" > tmp/cache/VERSION
-  fi
+  # fi
 
   # remove stale unicorn and sidekiq pid's if they exist.
   rm -rf tmp/pids/unicorn.pid

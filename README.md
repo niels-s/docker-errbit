@@ -4,6 +4,12 @@
 
 docker run -d -p 27017:27017 -v /var/errbit/mongodb:/data/db --name mongodb dockerfile/mongodb
 
+docker run --name=errbit -d --link mongodb:mongodb \
+  -e 'DB_USER=gitlab'  \
+  -e 'DB_PASS=password' \
+  -e 'DB_NAME=gitlabhq_production' \
+  -v /workspace/docker-errbit/tmp/data:/home/errbit/data \
+  niels/errbit
 
 !secret token
 
@@ -20,27 +26,9 @@ docker run -d -p 27017:27017 -v /var/errbit/mongodb:/data/db --name mongodb dock
 - [Configuration](#configuration)
     - [Data Store](#data-store)
     - [Database](#database)
-        - [MySQL](#mysql)
-            - [Internal MySQL Server](#internal-mysql-server)
-            - [External MySQL Server](#external-mysql-server)
-            - [Linking to MySQL Container](#linking-to-mysql-container)
-        - [PostgreSQL (Recommended)](#postgresql)
-            - [External PostgreSQL Server](#external-postgresql-server)
-            - [Linking to PostgreSQL Container](#linking-to-postgresql-container)
-    - [Redis](#redis)
-      - [Internal Redis Server](#internal-redis-server)
-      - [External Redis Server](#external-redis-server)
-      - [Linking to Redis Container](#linking-to-redis-container)
+        - [MongoDB](#MongoDB)
+            - [Linking to MongoDB Container](#linking-to-mongodb-container)
     - [Mail](#mail)
-    - [SSL](#ssl)
-      - [Generation of Self Signed Certificates](#generation-of-self-signed-certificates)
-      - [Strengthening the server security](#strengthening-the-server-security)
-      - [Installation of the Certificates](#installation-of-the-certificates)
-      - [Enabling HTTPS support](#enabling-https-support)
-      - [Configuring HSTS](#configuring-hsts)
-      - [Using HTTPS with a load balancer](#using-https-with-a-load-balancer)
-      - [Establishing trust with your server](#establishing-trust-with-your-server)
-      - [Installing Trusted SSL Server Certificates](#installing-trusted-ssl-server-certificates)
     - [Deploy to a subdirectory (relative url root)](#deploy-to-a-subdirectory-relative-url-root)
     - [Putting it all together](#putting-it-all-together)
     - [OmniAuth Integration](#omniauth-integration)
@@ -52,12 +40,7 @@ docker run -d -p 27017:27017 -v /var/errbit/mongodb:/data/db --name mongodb dock
       - [Jira](#jira)
     - [Available Configuration Parameters](#available-configuration-parameters)
 - [Maintenance](#maintenance)
-    - [Creating Backups](#creating-backups)
-    - [Restoring Backups](#restoring-backups)
-    - [Automated Backups](#automated-backups)
-    - [Shell Access](#shell-access)
 - [Upgrading](#upgrading)
-- [Rake Tasks](#rake-tasks)
 - [Announcements](https://github.com/sameersbn/docker-gitlab/issues/39)
 - [References](#references)
 
@@ -172,30 +155,7 @@ GitLab uses a database backend to store its data. You can configure this image t
 
 ### MongoDB
 
-#### External MySQL Server
-
-The image can be configured to use an external MySQL database instead of starting a MySQL server internally. The database configuration should be specified using environment variables while starting the GitLab image.
-
-Before you start the GitLab image create user and database for gitlab.
-
-```sql
-CREATE USER 'gitlab'@'%.%.%.%' IDENTIFIED BY 'password';
-CREATE DATABASE IF NOT EXISTS `gitlabhq_production` DEFAULT CHARACTER SET `utf8` COLLATE `utf8_unicode_ci`;
-GRANT SELECT, LOCK TABLES, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER ON `gitlabhq_production`.* TO 'gitlab'@'%.%.%.%';
-```
-
-We are now ready to start the GitLab application.
-
-*Assuming that the mysql server host is 192.168.1.100*
-
-```bash
-docker run --name=gitlab -d \
-  -e 'DB_HOST=192.168.1.100' -e 'DB_NAME=gitlabhq_production' -e 'DB_USER=gitlab' -e 'DB_PASS=password' \
-  -v /opt/gitlab/data:/home/git/data \
-  sameersbn/gitlab:7.3.1-3
-```
-
-#### Linking to MySQL Container
+#### Linking to MongoDB Container
 
 You can link this image with a mysql container for the database requirements. The alias of the mysql server container should be set to **mysql** while linking with the gitlab image.
 

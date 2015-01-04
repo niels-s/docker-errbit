@@ -26,7 +26,7 @@ EXPOSE 22
 EXPOSE 80
 #EXPOSE 443
 
-#VOLUME ["/home/git/data"]
+VOLUME ["/home/errbit/data"]
 
 ENTRYPOINT ["/app/init"]
 CMD ["app:start"]
